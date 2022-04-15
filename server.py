@@ -3,7 +3,7 @@ from flask import Flask, render_template, request
 from pprint import pformat
 import os
 import requests
-
+import json
 
 app = Flask(__name__)
 app.secret_key = 'SECRETSECRETSECRET'
@@ -36,28 +36,47 @@ def find_afterparties():
     """Search for afterparties on Eventbrite"""
 
     keyword = request.args.get('keyword', '')
-    postalcode = request.args.get('zipcode', '')
+    postalcode = request.args.get('zipcode', '') # postalCode
     radius = request.args.get('radius', '')
     unit = request.args.get('unit', '')
     sort = request.args.get('sort', '')
 
     url = 'https://app.ticketmaster.com/discovery/v2/events'
-    payload = {'apikey': API_KEY}
-
+    
     # TODO: Make a request to the Event Search endpoint to search for events
     #
     # - Use form data from the user to populate any search parameters
     #
+    payload = {
+        'apikey': API_KEY,
+        'keyword': keyword,
+        'postalCode': postalcode,
+        'radius': radius,
+        'unit': unit,
+        'sort': sort
+    }
+    
     # - Make sure to save the JSON data from the response to the `data`
     #   variable so that it can display on the page. This is useful for
     #   debugging purposes!
-    #
+
+    res = requests.get(url, params=payload)
+    data = res.json()
+
+    with open('afterparties.json', 'w') as f:
+        json.dump(data, f)
+        
     # - Replace the empty list in `events` with the list of events from your
     #   search results
 
-    data = {'Test': ['This is just some test data'],
-            'page': {'totalElements': 1}}
-    events = []
+    # data = {'Test': ['This is just some test data'],
+    #         'page': {'totalElements': 1}}
+    # events = []
+    # events = data['_embedded']['events']
+
+    # embedded_events = data.get('_embedded', {})
+    # events = embedded_events.get('events', [])
+    events = data.get('_embedded', {}).get('events', [])
 
     return render_template('search-results.html',
                            pformat=pformat,
@@ -75,8 +94,35 @@ def get_event_details(id):
     """View the details of an event."""
 
     # TODO: Finish implementing this view function
+    # make a request to the Ticketmaster API in order to retrieve data about one event
+    name = request.args.get('name', '')
+    start_date_time = request.args.get('startDateTime', '')
 
-    return render_template('event-details.html')
+    # event's name
+    # URL    
+    # Venues
+    # Classifications
+
+
+    url = 'https://app.ticketmaster.com/discovery/v2/events'
+
+    payload = {
+        'apikey': API_KEY,
+        'id' : id
+    }
+    
+    res = requests.get(url, params=payload)
+    data = res.json()
+
+    embedded_events = data.get('_embedded', {})
+    events = embedded_events.get('events', [])
+    event = None
+    if len(events) > 0:
+        event = events[0]
+        # print(event)
+    # breakpoint()
+
+    return render_template('event-details.html', pformat=pformat, data=data, event=event) 
 
 
 if __name__ == '__main__':
